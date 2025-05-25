@@ -1,3 +1,5 @@
+[English Version 🇬🇧](README.en.md)
+
 # codesearch_claude4
 一个几乎纯用大模型（听舍友说claude 4.0出了就马上来体验一下）生成的基于Flask的web应用（汗流浃背了🥲，之前本科毕设类似的需求下，折磨了我几个月的设计，居然不到一个小时就被AI轻松超越了）
 

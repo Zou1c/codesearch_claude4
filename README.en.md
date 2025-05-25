@@ -15,7 +15,7 @@ Due to my reluctance to use the paid version in previous attempts, resulting in 
 ## Main Page
 ![image](https://github.com/user-attachments/assets/41b2e073-3da0-4ca6-a043-4f43f90c5ccb)
 ## Search Page
-![image](https://github.com/user-attachments/assets/b503f9b5-3da0-4ca6-a043-4f43f90c5ccb)
+![image](https://github.com/user-attachments/assets/b503f7d0-7c25-42b9-a310-0aa80dbfe6dd)
 
 # Environment
 - Windows 11 (AMD); other platforms should also work fine

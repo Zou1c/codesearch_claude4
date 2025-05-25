@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeSearch - 智能代码搜索系统</title>
+    
+    <!-- 引入必要的CSS库 -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    
+    <style>
+        /* 自定义样式 */
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #7c3aed;
+            --dark-bg: #1a1a1a;
+            --dark-card: #2d2d2d;
+            --dark-text: #e5e5e5;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* 暗黑模式 */
+        body.dark {
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+        }
+
+        .dark .card {
+            background-color: var(--dark-card);
+            border-color: #444;
+        }
+
+        .dark .input, .dark .textarea, .dark .select {
+            background-color: #3a3a3a;
+            color: var(--dark-text);
+            border-color: #555;
+        }
+
+        .dark .code-editor {
+            background-color: #1e1e1e;
+        }
+
+        /* 动画效果 */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+
+        /* 卡片样式 */
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 按钮样式 */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(79, 70, 229, 0.4);
+        }
+
+        /* 输入框样式 */
+        .input {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px 16px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        /* 代码编辑器样式 */
+        .code-editor {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background-color: #f8f8f8;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        /* 文件树样式 */
+        .file-tree {
+            font-size: 14px;
+        }
+
+        .file-tree-item {
+            padding: 4px 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .file-tree-item:hover {
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+
+        /* 搜索结果样式 */
+        .search-result {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 16px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-result:hover {
+            background-color: rgba(79, 70, 229, 0.05);
+        }
+
+        /* 移动端响应式 */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -100%;
+                top: 0;
+                width: 80%;
+                height: 100%;
+                z-index: 1000;
+                transition: left 0.3s ease;
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+            }
+        }
+
+        /* 加载动画 */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 函数详情面板 */
+        .function-detail {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+
+        .dark .function-detail {
+            background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%);
+        }
+
+        /* 标签样式 */
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin: 2px;
+            background-color: rgba(79, 70, 229, 0.1);
+            color: var(--primary-color);
+        }
+
+        /* 依赖关系图样式 */
+        .dependency-graph {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 300px;
+        }
+
+        .dark .dependency-graph {
+            background: #2d2d2d;
+        }
+
+        /* 通知样式 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 9999;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .notification.success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .notification.error {
+            background-color: #ef4444;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- 主容器 -->
+    <div id="app" class="min-h-screen transition-colors duration-300">
+        <!-- 导航栏 -->
+        <nav class="bg-white dark:bg-gray-800 shadow-lg sticky top-0 z-50">
+            <div class="container mx-auto px-4">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center">
+                        <button @click="toggleSidebar" class="md:hidden mr-4">
+                            <i class="fas fa-bars text-2xl"></i>
+                        </button>
+                        <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600">
+                            <i class="fas fa-code mr-2"></i>CodeSearch
+                        </h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <!-- 搜索框 -->
+                        <div class="relative hidden md:block">
+                            <input 
+                                v-model="searchQuery"
+                                @keyup.enter="performSearch"
+                                type="text" 
+                                placeholder="搜索函数、类或代码..." 
+                                class="input w-96 pr-10"
+                            >
+                            <button @click="performSearch" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <!-- 主题切换 -->
+                        <button @click="toggleTheme" class="text-2xl">
+                            <i :class="darkMode ? 'fas fa-sun text-yellow-400' : 'fas fa-moon text-gray-600'"></i>
+                        </button>
+                        <!-- GitHub同步状态 -->
+                        <button v-if="currentProject?.git_url" @click="syncGithub" class="text-2xl">
+                            <i class="fab fa-github" :class="syncing ? 'fa-spin' : ''"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容区 -->
+        <div class="flex">
+            <!-- 侧边栏 -->
+            <aside :class="['sidebar bg-white dark:bg-gray-800 w-64 min-h-screen shadow-xl', sidebarOpen ? 'open' : '']">
+                <div class="p-4">
+                    <!-- 项目列表 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3 flex items-center justify-between">
+                            <span><i class="fas fa-project-diagram mr-2"></i>项目</span>
+                            <button @click="showNewProjectModal = true" class="text-sm text-purple-600 hover:text-purple-700">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </h3>
+                        <ul class="space-y-2">
+                            <li v-for="project in projects" :key="project.name" 
+                                @click="selectProject(project)"
+                                :class="['file-tree-item rounded-lg cursor-pointer transition-colors', 
+                                        currentProject?.name === project.name ? 'bg-purple-100 dark:bg-purple-900' : '']">
+                                <div class="flex items-center justify-between">
+                                    <span class="flex items-center">
+                                        <i class="fas fa-folder mr-2 text-purple-600"></i>
+                                        {{ project.name }}
+                                    </span>
+                                    <span class="text-xs text-gray-500">
+                                        {{ project.total_files }} 文件
+                                    </span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 文件树 -->
+                    <div v-if="currentProject" class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">
+                            <i class="fas fa-file-code mr-2"></i>文件结构
+                        </h3>
+                        <div class="file-tree max-h-96 overflow-y-auto">
+                            <file-tree :files="fileTree" @select="openFile"></file-tree>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="space-y-2">
+                        <button @click="showUploadModal = true" class="btn-primary w-full text-sm">
+                            <i class="fas fa-upload mr-2"></i>上传文件
+                        </button>
+                        <button @click="showUploadDirModal = true" class="btn-primary w-full text-sm">
+                            <i class="fas fa-folder-upload mr-2"></i>上传目录
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 主内容 -->
+            <main class="flex-1 md:ml-64 p-6">
+                <!-- 搜索框（移动端） -->
+                <div class="md:hidden mb-4">
+                    <div class="relative">
+                        <input 
+                            v-model="searchQuery"
+                            @keyup.enter="performSearch"
+                            type="text" 
+                            placeholder="搜索函数、类或代码..." 
+                            class="input pr-10"
+                        >
+                        <button @click="performSearch" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 页面路由 -->
+                <div class="space-y-6">
+                    <!-- 概览页面 -->
+                    <div v-if="currentView === 'overview'" class="fade-in">
+                        <h2 class="text-3xl font-bold mb-6">项目概览</h2>
+                        
+                        <!-- 统计卡片 -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                            <div class="card p-6 text-center">
+                                <div class="text-3xl font-bold text-purple-600">{{ projects.length }}</div>
+                                <div class="text-gray-500">项目总数</div>
+                            </div>
+                            <div class="card p-6 text-center">
+                                <div class="text-3xl font-bold text-blue-600">{{ totalFiles }}</div>
+                                <div class="text-gray-500">文件总数</div>
+                            </div>
+                            <div class="card p-6 text-center">
+                                <div class="text-3xl font-bold text-green-600">{{ totalFunctions }}</div>
+                                <div class="text-gray-500">函数总数</div>
+                            </div>
+                            <div class="card p-6 text-center">
+                                <div class="text-3xl font-bold text-orange-600">{{ totalLines }}</div>
+                                <div class="text-gray-500">代码行数</div>
+                            </div>
+                        </div>
+
+                        <!-- 项目卡片列表 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div v-for="project in projects" :key="project.name" 
+                                @click="selectProject(project)"
+                                class="card p-6 cursor-pointer hover:shadow-xl transition-all">
+                                <div class="flex items-start justify-between mb-4">
+                                    <h3 class="text-xl font-semibold">{{ project.name }}</h3>
+                                    <i v-if="project.git_url" class="fab fa-github text-gray-400"></i>
+                                </div>
+                                <div class="space-y-2 text-sm text-gray-600">
+                                    <div><i class="fas fa-file mr-2"></i>{{ project.total_files }} 文件</div>
+                                    <div><i class="fas fa-code mr-2"></i>{{ project.total_lines }} 行代码</div>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span v-for="lang in project.languages" :key="lang" class="tag">
+                                            {{ lang }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 搜索结果页面 -->
+                    <div v-if="currentView === 'search'" class="fade-in">
+                        <h2 class="text-3xl font-bold mb-6">搜索结果</h2>
+                        
+                        <div v-if="searching" class="flex justify-center py-12">
+                            <div class="loader"></div>
+                        </div>
+                        
+                        <div v-else-if="searchResults.length > 0" class="space-y-4">
+                            <div v-for="(result, index) in searchResults" :key="index" 
+                                @click="showFunctionDetail(result)"
+                                class="search-result card p-6 cursor-pointer">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-semibold text-purple-600">
+                                            <i class="fas fa-function mr-2"></i>{{ result.name }}
+                                        </h3>
+                                        <div class="text-sm text-gray-500 mt-1">
+                                            <i class="fas fa-file-code mr-1"></i>{{ formatFilePath(result.file_path) }}
+                                            <span class="mx-2">•</span>
+                                            行 {{ result.line_number }}
+                                        </div>
+                                        <p class="text-gray-600 mt-2 line-clamp-2">{{ result.doc_string || '无文档' }}</p>
+                                        <div class="flex items-center mt-3 space-x-4 text-sm">
+                                            <span class="text-gray-500">
+                                                <i class="fas fa-star mr-1"></i>匹配度: {{ (result.score * 100).toFixed(1) }}%
+                                            </span>
+                                            <span class="text-gray-500">
+                                                <i class="fas fa-chart-line mr-1"></i>复杂度: {{ result.complexity }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div v-else class="text-center py-12 text-gray-500">
+                            <i class="fas fa-search text-6xl mb-4"></i>
+                            <p>暂无搜索结果</p>
+                        </div>
+                    </div>
+
+                    <!-- 代码编辑器页面 -->
+                    <div v-if="currentView === 'editor' && currentFile" class="fade-in">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-2xl font-semibold">
+                                <i class="fas fa-edit mr-2"></i>{{ currentFile.name }}
+                            </h2>
+                            <div class="space-x-2">
+                                <button @click="saveFile" class="btn-primary text-sm">
+                                    <i class="fas fa-save mr-2"></i>保存
+                                </button>
+                                <button @click="currentView = 'overview'" class="text-gray-600 hover:text-gray-800">
+                                    <i class="fas fa-times text-xl"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="card p-0 overflow-hidden">
+                            <div class="bg-gray-800 text-white px-4 py-2 text-sm flex justify-between">
+                                <span>{{ currentFile.path }}</span>
+                                <span>{{ fileContent.split('\n').length }} 行</span>
+                            </div>
+                            <textarea
+                                v-model="fileContent"
+                                class="code-editor w-full min-h-screen p-4 text-sm"
+                                :style="{ fontFamily: 'Consolas, Monaco, monospace' }"
+                                spellcheck="false"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <!-- 依赖关系页面 -->
+                    <div v-if="currentView === 'dependencies' && currentProject" class="fade-in">
+                        <h2 class="text-3xl font-bold mb-6">依赖关系</h2>
+                        
+                        <div class="dependency-graph card p-6">
+                            <div class="text-center text-gray-500 py-12">
+                                <i class="fas fa-project-diagram text-6xl mb-4"></i>
+                                <p>依赖关系图可视化</p>
+                                <p class="text-sm mt-2">功能开发中...</p>
+                            </div>
+                        </div>
+
+                        <!-- 依赖列表 -->
+                        <div class="mt-6 space-y-4">
+                            <div v-for="(deps, file) in currentProject.dependencies" :key="file" 
+                                 v-if="deps.length > 0"
+                                 class="card p-4">
+                                <h4 class="font-semibold mb-2">{{ formatFilePath(file) }}</h4>
+                                <div class="flex flex-wrap gap-2">
+                                    <span v-for="dep in deps" :key="dep" class="tag">
+                                        {{ formatFilePath(dep) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- 模态框：新建项目 -->
+        <div v-if="showNewProjectModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="card p-6 w-full max-w-md animate__animated animate__fadeIn">
+                <h3 class="text-xl font-semibold mb-4">新建项目</h3>
+                <div class="space-y-4">
+                    <input 
+                        v-model="newProject.name"
+                        type="text" 
+                        placeholder="项目名称" 
+                        class="input"
+                    >
+                    <input 
+                        v-model="newProject.gitUrl"
+                        type="text" 
+                        placeholder="GitHub仓库URL（可选）" 
+                        class="input"
+                    >
+                    <div class="flex justify-end space-x-2">
+                        <button @click="showNewProjectModal = false" class="px-4 py-2 text-gray-600">
+                            取消
+                        </button>
+                        <button @click="createProject" class="btn-primary">
+                            创建
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 模态框：上传文件 -->
+        <div v-if="showUploadModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="card p-6 w-full max-w-md animate__animated animate__fadeIn">
+                <h3 class="text-xl font-semibold mb-4">上传文件</h3>
+                <div class="space-y-4">
+                    <input 
+                        type="file" 
+                        multiple
+                        @change="handleFileSelect"
+                        class="input"
+                    >
+                    <div class="flex justify-end space-x-2">
+                        <button @click="showUploadModal = false" class="px-4 py-2 text-gray-600">
+                            取消
+                        </button>
+                        <button @click="uploadFiles" class="btn-primary">
+                            上传
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 模态框：上传目录 -->
+        <div v-if="showUploadDirModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="card p-6 w-full max-w-md animate__animated animate__fadeIn">
+                <h3 class="text-xl font-semibold mb-4">上传目录</h3>
+                <div class="space-y-4">
+                    <p class="text-sm text-gray-600">请选择包含项目文件的ZIP压缩包</p>
+                    <input 
+                        type="file" 
+                        accept=".zip"
+                        @change="handleDirSelect"
+                        class="input"
+                    >
+                    <div class="flex justify-end space-x-2">
+                        <button @click="showUploadDirModal = false" class="px-4 py-2 text-gray-600">
+                            取消
+                        </button>
+                        <button @click="uploadDirectory" class="btn-primary">
+                            上传
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 函数详情弹出层 -->
+        <div v-if="showFunctionDetailModal && selectedFunction" 
+             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="card p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto animate__animated animate__fadeIn">
+                <div class="flex items-start justify-between mb-4">
+                    <h3 class="text-2xl font-semibold text-purple-600">
+                        <i class="fas fa-function mr-2"></i>{{ selectedFunction.name }}
+                    </h3>
+                    <button @click="showFunctionDetailModal = false" class="text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- 基本信息 -->
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-500">文件：</span>
+                            <span class="font-medium">{{ formatFilePath(selectedFunction.file_path) }}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">行号：</span>
+                            <span class="font-medium">{{ selectedFunction.line_number }}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">复杂度：</span>
+                            <span class="font-medium">{{ selectedFunction.complexity }}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">返回类型：</span>
+                            <span class="font-medium">{{ selectedFunction.return_type || '无' }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 参数 -->
+                    <div>
+                        <h4 class="font-semibold mb-2">参数</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span v-for="param in selectedFunction.parameters" :key="param" class="tag">
+                                {{ param }}
+                            </span>
+                            <span v-if="selectedFunction.parameters.length === 0" class="text-gray-500 text-sm">
+                                无参数
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- 文档字符串 -->
+                    <div v-if="selectedFunction.doc_string">
+                        <h4 class="font-semibold mb-2">文档</h4>
+                        <p class="text-gray-600 bg-gray-100 dark:bg-gray-800 p-3 rounded">
+                            {{ selectedFunction.doc_string }}
+                        </p>
+                    </div>
+                    
+                    <!-- 依赖 -->
+                    <div v-if="selectedFunction.dependencies.length > 0">
+                        <h4 class="font-semibold mb-2">依赖</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span v-for="dep in selectedFunction.dependencies" :key="dep" class="tag">
+                                {{ dep }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- 源代码 -->
+                    <div>
+                        <h4 class="font-semibold mb-2">源代码</h4>
+                        <pre class="code-editor overflow-x-auto"><code>{{ selectedFunction.source_code }}</code></pre>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="flex justify-end space-x-2 pt-4">
+                        <button @click="openFileAtFunction(selectedFunction)" class="btn-primary text-sm">
+                            <i class="fas fa-external-link-alt mr-2"></i>在编辑器中打开
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 导航标签 -->
+        <div v-if="currentProject" class="fixed bottom-4 right-4 flex space-x-2">
+            <button @click="currentView = 'overview'" 
+                    :class="['p-3 rounded-full shadow-lg transition-all', 
+                            currentView === 'overview' ? 'bg-purple-600 text-white' : 'bg-white text-gray-600']">
+                <i class="fas fa-home"></i>
+            </button>
+            <button @click="currentView = 'search'" 
+                    :class="['p-3 rounded-full shadow-lg transition-all', 
+                            currentView === 'search' ? 'bg-purple-600 text-white' : 'bg-white text-gray-600']">
+                <i class="fas fa-search"></i>
+            </button>
+            <button @click="currentView = 'dependencies'" 
+                    :class="['p-3 rounded-full shadow-lg transition-all', 
+                            currentView === 'dependencies' ? 'bg-purple-600 text-white' : 'bg-white text-gray-600']">
+                <i class="fas fa-project-diagram"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 引入Vue 3和相关库 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    
+    <script>
+        const { createApp } = Vue;
+
+        // 文件树组件
+        const FileTreeComponent = {
+            name: 'FileTree',
+            props: ['files'],
+            template: `
+                <ul class="pl-4">
+                    <li v-for="node in files" :key="node.path" class="file-tree-item">
+                        <div @click="$emit('select', node)" class="cursor-pointer hover:text-purple-600">
+                            <i :class="getFileIcon(node)" class="mr-2"></i>
+                            {{ node.name }}
+                        </div>
+                        <file-tree v-if="node.children" :files="node.children" @select="$emit('select', $event)"></file-tree>
+                    </li>
+                </ul>
+            `,
+            methods: {
+                getFileIcon(node) {
+                    if (node.children) return 'fas fa-folder text-yellow-600';
+                    const ext = node.name.split('.').pop();
+                    const iconMap = {
+                        'py': 'fab fa-python text-blue-500',
+                        'js': 'fab fa-js text-yellow-500',
+                        'ts': 'fab fa-js text-blue-600',
+                        'java': 'fab fa-java text-red-500',
+                        'cpp': 'fas fa-file-code text-purple-500',
+                        'c': 'fas fa-file-code text-blue-500',
+                        'h': 'fas fa-file-code text-gray-500',
+                        'cs': 'fas fa-file-code text-green-500',
+                        'go': 'fab fa-golang text-cyan-500',
+                        'rs': 'fas fa-file-code text-orange-500',
+                        'php': 'fab fa-php text-purple-600'
+                    };
+                    return iconMap[ext] || 'fas fa-file text-gray-500';
+                }
+            }
+        };
+
+        createApp({
+            components: {
+                'file-tree': FileTreeComponent
+            },
+            data() {
+                return {
+                    // 主题
+                    darkMode: false,
+                    
+                    // 视图控制
+                    currentView: 'overview',
+                    sidebarOpen: false,
+                    
+                    // 项目数据
+                    projects: [],
+                    currentProject: null,
+                    
+                    // 文件数据
+                    currentFile: null,
+                    fileContent: '',
+                    fileTree: [],
+                    
+                    // 搜索
+                    searchQuery: '',
+                    searchResults: [],
+                    searching: false,
+                    
+                    // 模态框
+                    showNewProjectModal: false,
+                    showUploadModal: false,
+                    showUploadDirModal: false,
+                    showFunctionDetailModal: false,
+                    
+                    // 新项目表单
+                    newProject: {
+                        name: '',
+                        gitUrl: ''
+                    },
+                    
+                    // 上传
+                    selectedFiles: null,
+                    selectedDir: null,
+                    
+                    // 函数详情
+                    selectedFunction: null,
+                    
+                    // 同步状态
+                    syncing: false
+                };
+            },
+            computed: {
+                totalFiles() {
+                    return this.projects.reduce((sum, p) => sum + p.total_files, 0);
+                },
+                totalFunctions() {
+                    return this.projects.reduce((sum, p) => {
+                        return sum + p.files.reduce((s, f) => s + f.functions.length, 0);
+                    }, 0);
+                },
+                totalLines() {
+                    return this.projects.reduce((sum, p) => sum + p.total_lines, 0);
+                }
+            },
+            async mounted() {
+                // 检查并应用保存的主题
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark') {
+                    this.darkMode = true;
+                    document.body.classList.add('dark');
+                }
+                
+                // 加载项目
+                await this.loadProjects();
+                
+                // 监听窗口大小变化
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth >= 768) {
+                        this.sidebarOpen = false;
+                    }
+                });
+            },
+            methods: {
+                // 主题切换
+                toggleTheme() {
+                    this.darkMode = !this.darkMode;
+                    if (this.darkMode) {
+                        document.body.classList.add('dark');
+                        localStorage.setItem('theme', 'dark');
+                    } else {
+                        document.body.classList.remove('dark');
+                        localStorage.setItem('theme', 'light');
+                    }
+                },
+                
+                // 侧边栏控制
+                toggleSidebar() {
+                    this.sidebarOpen = !this.sidebarOpen;
+                },
+                
+                // 加载项目
+                async loadProjects() {
+                    try {
+                        const response = await axios.get('http://localhost:5000/api/projects');
+                        this.projects = response.data.projects;
+                    } catch (error) {
+                        this.showNotification('加载项目失败', 'error');
+                    }
+                },
+                
+                // 选择项目
+                selectProject(project) {
+                    this.currentProject = project;
+                    this.buildFileTree(project.files);
+                    this.currentView = 'overview';
+                    if (window.innerWidth < 768) {
+                        this.sidebarOpen = false;
+                    }
+                },
+                
+                // 创建项目
+                async createProject() {
+                    if (!this.newProject.name) {
+                        this.showNotification('请输入项目名称', 'error');
+                        return;
+                    }
+                    
+                    try {
+                        const response = await axios.post('http://localhost:5000/api/projects', {
+                            name: this.newProject.name,
+                            git_url: this.newProject.gitUrl
+                        });
+                        
+                        this.projects.push(response.data.project);
+                        this.showNewProjectModal = false;
+                        this.newProject = { name: '', gitUrl: '' };
+                        this.showNotification('项目创建成功', 'success');
+                    } catch (error) {
+                        this.showNotification('创建项目失败: ' + error.response?.data?.error, 'error');
+                    }
+                },
+                
+                // 搜索
+                async performSearch() {
+                    if (!this.searchQuery) return;
+                    
+                    this.currentView = 'search';
+                    this.searching = true;
+                    
+                    try {
+                        const response = await axios.post('http://localhost:5000/api/search', {
+                            query: this.searchQuery,
+                            project_name: this.currentProject?.name,
+                            top_k: 20
+                        });
+                        
+                        this.searchResults = response.data.results;
+                    } catch (error) {
+                        this.showNotification('搜索失败', 'error');
+                    } finally {
+                        this.searching = false;
+                    }
+                },
+                
+                // 文件操作
+                buildFileTree(files) {
+                    const tree = [];
+                    const map = {};
+                    
+                    files.forEach(file => {
+                        const parts = file.path.split(/[/\\]/);
+                        let current = tree;
+                        let path = '';
+                        
+                        parts.forEach((part, index) => {
+                            path += (index > 0 ? '/' : '') + part;
+                            
+                            if (index === parts.length - 1) {
+                                current.push({
+                                    name: part,
+                                    path: file.path,
+                                    file: file
+                                });
+                            } else {
+                                let folder = map[path];
+                                if (!folder) {
+                                    folder = {
+                                        name: part,
+                                        path: path,
+                                        children: []
+                                    };
+                                    map[path] = folder;
+                                    current.push(folder);
+                                }
+                                current = folder.children;
+                            }
+                        });
+                    });
+                    
+                    this.fileTree = tree;
+                },
+                
+                async openFile(node) {
+                    if (!node.file) return;
+                    
+                    try {
+                        const response = await axios.get(
+                            `http://localhost:5000/api/projects/${this.currentProject.name}/files/${encodeURIComponent(node.file.path)}`
+                        );
+                        
+                        this.currentFile = node.file;
+                        this.fileContent = response.data.content;
+                        this.currentView = 'editor';
+                    } catch (error) {
+                        this.showNotification('打开文件失败', 'error');
+                    }
+                },
+                
+                async saveFile() {
+                    if (!this.currentFile || !this.currentProject) return;
+                    
+                    try {
+                        await axios.put(
+                            `http://localhost:5000/api/projects/${this.currentProject.name}/files/${encodeURIComponent(this.currentFile.path)}`,
+                            { content: this.fileContent }
+                        );
+                        
+                        this.showNotification('文件保存成功', 'success');
+                    } catch (error) {
+                        this.showNotification('保存文件失败', 'error');
+                    }
+                },
+                
+                // 上传文件
+                handleFileSelect(event) {
+                    this.selectedFiles = event.target.files;
+                },
+                
+                async uploadFiles() {
+                    if (!this.selectedFiles || !this.currentProject) return;
+                    
+                    const formData = new FormData();
+                    for (let file of this.selectedFiles) {
+                        formData.append('files', file);
+                    }
+                    
+                    try {
+                        await axios.post(
+                            `http://localhost:5000/api/projects/${this.currentProject.name}/upload`,
+                            formData,
+                            { headers: { 'Content-Type': 'multipart/form-data' } }
+                        );
+                        
+                        this.showUploadModal = false;
+                        this.showNotification('文件上传成功', 'success');
+                        await this.loadProjects();
+                    } catch (error) {
+                        this.showNotification('上传失败', 'error');
+                    }
+                },
+                
+                // 上传目录
+                handleDirSelect(event) {
+                    this.selectedDir = event.target.files[0];
+                },
+                
+                async uploadDirectory() {
+                    if (!this.selectedDir || !this.currentProject) return;
+                    
+                    const formData = new FormData();
+                    formData.append('directory', this.selectedDir);
+                    
+                    try {
+                        await axios.post(
+                            `http://localhost:5000/api/projects/${this.currentProject.name}/upload-directory`,
+                            formData,
+                            { headers: { 'Content-Type': 'multipart/form-data' } }
+                        );
+                        
+                        this.showUploadDirModal = false;
+                        this.showNotification('目录上传成功', 'success');
+                        await this.loadProjects();
+                    } catch (error) {
+                        this.showNotification('上传失败', 'error');
+                    }
+                },
+                
+                // GitHub同步
+                async syncGithub() {
+                    if (!this.currentProject?.git_url) return;
+                    
+                    this.syncing = true;
+                    try {
+                        await axios.post(
+                            `http://localhost:5000/api/projects/${this.currentProject.name}/git/pull`
+                        );
+                        
+                        this.showNotification('Git同步成功', 'success');
+                        await this.loadProjects();
+                    } catch (error) {
+                        this.showNotification('Git同步失败', 'error');
+                    } finally {
+                        this.syncing = false;
+                    }
+                },
+                
+                // 函数详情
+                showFunctionDetail(func) {
+                    this.selectedFunction = func;
+                    this.showFunctionDetailModal = true;
+                },
+                
+                async openFileAtFunction(func) {
+                    this.showFunctionDetailModal = false;
+                    
+                    // 找到文件节点
+                    const fileNode = this.findFileNode(func.file_path);
+                    if (fileNode) {
+                        await this.openFile(fileNode);
+                        
+                        // 滚动到函数位置
+                        setTimeout(() => {
+                            const lines = this.fileContent.split('\n');
+                            let charCount = 0;
+                            for (let i = 0; i < func.line_number - 1 && i < lines.length; i++) {
+                                charCount += lines[i].length + 1;
+                            }
+                            
+                            const textarea = document.querySelector('.code-editor');
+                            if (textarea) {
+                                textarea.setSelectionRange(charCount, charCount);
+                                textarea.focus();
+                                textarea.scrollTop = (func.line_number - 10) * 20;
+                            }
+                        }, 100);
+                    }
+                },
+                
+                findFileNode(filePath) {
+                    const findInTree = (nodes) => {
+                        for (let node of nodes) {
+                            if (node.file && node.file.path === filePath) {
+                                return node;
+                            }
+                            if (node.children) {
+                                const found = findInTree(node.children);
+                                if (found) return found;
+                            }
+                        }
+                        return null;
+                    };
+                    
+                    return findInTree(this.fileTree);
+                },
+                
+                // 工具方法
+                formatFilePath(path) {
+                    const parts = path.split(/[/\\]/);
+                    return parts.slice(-2).join('/');
+                },
+                
+                showNotification(message, type = 'info') {
+                    const notification = document.createElement('div');
+                    notification.className = `notification ${type}`;
+                    notification.textContent = message;
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        notification.style.opacity = '0';
+                        setTimeout(() => notification.remove(), 300);
+                    }, 3000);
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
